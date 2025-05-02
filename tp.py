@@ -32,9 +32,16 @@ consultaSQL = """
                     SELECT COUNT(*) 
                     FROM bibliotecas_populares AS b2
                     WHERE b2.cod_localidad = bibliotecas_populares.cod_localidad
-                    AND b2.nombre = bibliotecas_populares.nombre
+                    AND LEVENSHTEIN(b2.nombre, bibliotecas_populares.nombre) <=3
                     ) > 1;
               """
 dataframeResultado = dd.sql(consultaSQL).df()
 # con esta consulta, veo que no son iguales pero por alguna razón tienen el mismo cod_localidad cuando pertenecen a distintas localidades
 # es raro el mail de una de las dos pues su mail no da indicios de que se está hablando de una bp llamada Florentino Ameghino
+#%%
+consultaSQL = """
+                SELECT cod_localidad
+                FROM bibliotecas_populares
+                WHERE localidad = 'La Plata';
+              """
+dataframeResultado = dd.sql(consultaSQL).df()
