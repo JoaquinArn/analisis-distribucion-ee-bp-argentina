@@ -13,54 +13,53 @@ bibliotecas_populares = pd.read_csv('bibliotecas-populares.csv')
 
 #Seleccionamos las columnas que definimos en el Modelo Relacional, con los correspondientes nombres
 consultaSQL = """
-                SELECT nro_conabip, id_departamento AS id_depto, fecha_fundacion
+                SELECT nro_conabip, id_departamento AS id_depto, mail, fecha_fundacion
                 FROM bibliotecas_populares
               """
 
 bp = dd.sql(consultaSQL).df()
 
-# Ahora bien, queremos hacer cierta limpieza de datos, para asegurar consistencia entre tablas.
-
-#--Notamos un leve problema de consistencia entre las distintas bases de datos--
-
-#Comparamos los id_depto de la tabla con los de las tablas originales de Establecimientos educativos y Padrón
-#Nota: en el caso de Establecimientos Educativos, se puede extraer el código de departamento a partir de Código de localidad
-
-#Observamos inconsistencia en el id_depto de Chascomús, Buenos Aires; en BP 
-#Para arreglarlo, cambiados su id_depto de 6217 a 6218
-bp['id_depto'] = bp['id_depto'].replace({6217: 6218})
-
-#%% TABLA MODELO RELACIONAL: MAIL
-
-#Seleccionamos los atributos que definimos en el Modelo Relacional para esta relación.
-mail = bibliotecas_populares[['nro_conabip', 'mail']]
-
-#Ahora bien, queremos hacer cierta limpieza de datos para:
-    #1)no usar mayor almacenamiento del necesario.
-    #2)asegurar atomicidad de los atributos involucrados. 
-
-#Para lograr 1), decidimos no guardar aquellos correos cuyo valor sea NULL.
-#De lo contrario, estaríamos reservando espacio innecesario.
+# Observación: el atributo 'mail' no puede ser usado como identificador de una BP; o el departamento de una BP.
+# Hemos notado la presencia de dos bibliotecas de distintos departamentos que poseen mismo mail.
 
 consultaSQL = """
-                SELECT nro_conabip, mail AS correo
-                FROM bibliotecas_populares
-                WHERE mail IS NOT NULL
-              """
+                SELECT * 
+                FROM bp
+                WHERE mail IN (
+                    SELECT mail
+                    FROM bp AS bp2
+                    WHERE bp.nro_conabip != bp2.nro_conabip)
+                """
+bibliotecas_mail_repetido = dd.sql(consultaSQL).df()
 
-mail = dd.sql(consultaSQL).df()
+#Luego, eso significa que no será confiable el mail para identificar los datos relacionadas a una BP
+#Por lo tanto, no existe dependencia funcional válida con el atributo mail como único atributo del lazo izquierdo de una DF.
 
-#--Nos enfocamos ahora en lograr atomicidad en el atributo mail (ítem 2)--
+
+#Ahora bien, con eso aclarado, queremos hacer cierta limpieza de datos, para asegurar:
+    #1)atomicidad y correctitud de los atributos involucrados.
+    #2)consistencia entre tablas.
+
+#--En primer lugar, nos enfocamos en lograr atomicidad en el atributo mail --
 
 #Lo hacemos realizando las siguientes consultas SQL
 
-#La relación mail tiene 1022 filas. 
+#Primero seleccionamos aquellos que no poseen mail NULL pues, en ese caso, el atributo ya es atómico.
+
+consultaSQL = """
+                SELECT *
+                FROM bp
+                WHERE mail LIKE '%@%'
+              """
+bibliotecas_con_mail = dd.sql(consultaSQL).df()
+ 
+#La relación bibliotecas_con_mail tiene 1022 filas. 
 #Una particularidad de los mails, es que todos llevan @. Comprobamos:
 
 consultaSQL = """
-                SELECT nro_conabip, correo
-                FROM mail
-                WHERE correo LIKE '%@%'
+                SELECT *
+                FROM bibliotecas_con_mail
+                WHERE mail LIKE '%@%'
               """
 
 comprobacion_arroba_mail = dd.sql(consultaSQL).df()
@@ -68,16 +67,43 @@ comprobacion_arroba_mail = dd.sql(consultaSQL).df()
 #Es así que identificamos las que tienen dos (o más) mails contando los @ que tiene en su valor asociado al atributo mail
 
 consultaSQL = """
-                SELECT nro_conabip, correo
-                FROM mail
-                WHERE correo LIKE '%@%@%'
+                SELECT *
+                FROM bibliotecas_con_mail
+                WHERE mail LIKE '%@%@%'
               """
 
 identificacion_mails_multiples = dd.sql(consultaSQL).df()
 #Devolvió una única fila. Observamos que ésta biblioteca no posee dos mails, sino que está el mismo dos veces
 #Hacemos limpieza, escribiéndolo una única vez
 
-mail['correo'] = mail['correo'].replace({'sanestebanbibliotecapopular@yahoo.com.ar <SANESTEBANBIBLIOTECAPOPULAR@YAHOO.COM.AR>': 'sanestebanbibliotecapopular@yahoo.com.ar'})
+bp['mail'] = bp['mail'].replace({'sanestebanbibliotecapopular@yahoo.com.ar <SANESTEBANBIBLIOTECAPOPULAR@YAHOO.COM.AR>': 'sanestebanbibliotecapopular@yahoo.com.ar'})
+
+#--Lo siguiente es asegurar la correctitud de los datos--
+
+#Hemos observado un mail que posee un dominio incorrecto.
+#Un dominio está determinado por la presencia de un '@' y, posteriormente (aunque no de forma inmediata), un '.'
+#Sin embargo, hay un mail cargado que no cumple con la pauta. La siguiente consulta, lo muestra:   
+
+consultaSQL = """
+                SELECT *
+                FROM bibliotecas_con_mail
+                WHERE mail NOT LIKE '%@%.%'
+              """
+
+mail_dominio_incorrecto = dd.sql(consultaSQL).df()
+
+#El mail resultado es 'bib-arocha@educar'.
+#Sin embargo, el dominio correcto es 'educ.ar'. Por lo tanto, realizamos el cambio correspondiente.
+bp['mail'] = bp['mail'].replace({'bib-arocha@educar': 'bib-arocha@educ.ar'})
+
+#--Revisamos, por último, consistencia entre las distintas bases de datos--
+
+#Comparamos los id_depto de la tabla con los de las tablas originales de Establecimientos educativos y Padrón
+#Nota: en el caso de Establecimientos Educativos, se puede extraer el código de departamento a partir de Código de localidad
+
+#Observamos inconsistencia en el id_depto de Chascomús, Buenos Aires; en BP 
+#Para arreglarlo, cambiados su id_depto de 6217 a 6218
+bp['id_depto'] = bp['id_depto'].replace({6217: 6218})
 
 #%% TABLA MODELO RELACIONAL: PROVINCIA
 
@@ -468,7 +494,6 @@ del indice, fila, nombre, consultaSQL, departamentos_de_ciudad_bsas, departament
 
 #%%PASAMOS A ARCHIVOS .CSV NUESTRAS TABLAS
 bp.to_csv('bp', index = False)
-mail.to_csv('mail', index = False)
 localizacion_ee.to_csv('localizaciones_ee', index = False)
 nivel_educativo_ee.to_csv('nivel_educativo_ee', index = False)
 provincia.to_csv('provincia', index =  False)
