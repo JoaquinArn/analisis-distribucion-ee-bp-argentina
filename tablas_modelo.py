@@ -127,7 +127,12 @@ del bibliotecas_populares
 ee = pd.read_excel('2022_padron_oficial_establecimientos_educativos.xlsx', sheet_name = 'padron2022', skiprows = 5, header = [0,1])
 
 #Seleccionamos aquellos atributos que definimos en el Modelo Relacional
-localizacion_ee = ee[[('Establecimiento - Localización', 'Cueanexo'), ('Establecimiento - Localización', 'Código de localidad')]].copy()
+#Debemos tener en cuenta que solo queremos los de Modalidad Común
+#Es entonces que armamos el siguiente filtro para seleccionar los jardines, primarios y secundarios de modalidad común
+es_modalidad_comun = (ee[('Común', 'Nivel inicial - Jardín maternal')] == 1) | (ee['Común', 'Nivel inicial - Jardín de infantes'] == 1) | (ee[('Común', 'Primario')] == 1)  | (ee[('Común', 'Secundario')] == 1) | (ee[('Común', 'Secundario - INET')] == 1)
+
+#Luego, al momento de seleccionar los EE, tendremos en cuenta que cumplan con la condición planteada
+localizacion_ee = ee.loc[es_modalidad_comun, [('Establecimiento - Localización', 'Cueanexo'), ('Establecimiento - Localización', 'Código de localidad')]].copy()
 
 #Hacemos un renombre de las columnas para que haya concordancia con lo predefinido
 #Notar que renombramos el atributo 'Código de localidad' a 'id_depto'
@@ -160,7 +165,7 @@ localizacion_ee.loc[(localizacion_ee['id_depto'].astype(str).str.startswith('2')
 
 
 #Borramos las variables auxiliares usadas en el proceso.
-del nuevas_columnas
+del nuevas_columnas, es_modalidad_comun
 
 #%% TABLA MODELO RELACIONAL: NIVEL_EDUCATIVO_EE
 
@@ -199,7 +204,7 @@ for fila in ee.iterrows(): #en iterrows, [0] es el índice de fila y [1] es la s
         tipos.append('primario')
         
     #En último lugar, vemos si el establecimiento posee (posee también) nivel secundario. 
-    if (fila[1][('Común', 'Secundario')] == 1 or fila[1][('Común', 'Secundario - INET')] == 1 or fila[1][('Común', 'SNU')] == 1):
+    if (fila[1][('Común', 'Secundario')] == 1 or fila[1][('Común', 'Secundario - INET')] == 1):
         establecimientos.append(fila[1][('Establecimiento - Localización', 'Cueanexo')])
         tipos.append('secundario')
 
