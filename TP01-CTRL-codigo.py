@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@authors: GRUUPO CTRL
+@authors: GRUPO CTRL
     ARANGO, JOAQUIN 342/24
     CARDINALE, DANTE 593/24
     HERRERO, LUCAS 179/24
