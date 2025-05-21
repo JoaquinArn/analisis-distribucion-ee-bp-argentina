@@ -696,30 +696,36 @@ auxiliar_dominios_depto = dd.sql(consultaSQL).df()
 #A partir de esta consulta auxiliar, realizamos el ejercicio original
 #Para ello, la consulta debe:
     # - Seleccionar cada atributo deseado
-    # - Por cada departamento, sumar la cantidad de BP registrados.
     # - Extraer el dominio más usado por las BP de ese departamento (en caso de empate, devuelve indistintamente).
     # - Relacionar, a través de JOINs, las tablas 'departamento' y 'provincia'
+    # - Basta con que exista alguna biblioteca popular en el departamento que posea mail cargado para que el dominio resultado no sea none.
+
 
 consultaSQL = """
                 SELECT 
-                    p.nombre_provincia,
-                    d.id_depto, 
-                    IFNULL((SELECT SUM(aux.cant_BP) 
+                    p.nombre_provincia AS Provincia,
+                    d.nombre_depto AS Departamento,
+                    CASE 
+                        WHEN NOT EXISTS (
+                            SELECT 1 
                             FROM auxiliar_dominios_depto AS aux 
-                            WHERE aux.id_depto = d.id_depto), 0) AS cant_BP,
-                    (SELECT dominios 
-                     FROM auxiliar_dominios_depto AS aux
-                     WHERE aux.id_depto = d.id_depto 
-                     AND aux.cant_BP = (
-                                         SELECT MAX(aux2.cant_BP) 
-                                         FROM auxiliar_dominios_depto AS aux2 
-                                         WHERE aux2.dominios IS NOT NULL AND aux2.id_depto = d.id_depto
-                                       )
-                     LIMIT 1) AS dominio_mas_frecuente
-                FROM departamento AS d
-                JOIN 
-                    provincia AS p ON d.id_provincia = p.id_provincia
-    """
+                            WHERE aux.id_depto = d.id_depto 
+                            AND aux.dominios IS NOT NULL
+                            ) THEN 'none'
+                        ELSE (
+                            SELECT aux.dominios 
+                            FROM auxiliar_dominios_depto AS aux 
+                            WHERE aux.id_depto = d.id_depto AND aux.cant_BP = (
+                                SELECT MAX(aux2.cant_BP) 
+                                FROM auxiliar_dominios_depto AS aux2 
+                                WHERE aux2.id_depto = d.id_depto AND aux2.dominios IS NOT NULL
+                            )
+                            LIMIT 1
+                            )
+                    END AS "Dominio más frecuente en BP"
+                FROM departamento AS d 
+                JOIN provincia AS p ON d.id_provincia = p.id_provincia
+            """
 SQL_4 = dd.sql(consultaSQL).df()
 
 #%%PASAMOS A ARCHIVOS .CSV LOS RESULTADOS DE LAS CONSULTAS SQL
