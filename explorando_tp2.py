@@ -411,3 +411,51 @@ sns.scatterplot(x = promedio_saco.index, y = promedio_saco.values)
 
 #%% SCATTERPLOT PROMEDIO VESTIDO
 sns.scatterplot(x = promedio_vestido.index, y = promedio_vestido.values)
+#%% BoxPlot para un pixel en especifico y asi observar la distribucion de intensidad por clase
+pixel = 'pixel100'
+
+# Creo un dataframe que tenga solo la información de ese pixel
+df_de_100 = fashion[['label', pixel]]
+
+# Generar el boxplot
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='label', y=pixel, data=df_de_100)
+plt.title(f'Distribución de {pixel} por clase')
+plt.xlabel('Clase')
+plt.ylabel('Intensidad del píxel')
+plt.show()
+
+#%%
+# Separamos la columna de clases de los píxeles
+labels = fashion['label']
+pixels = fashion.drop(columns=['label'])
+
+# Definimos la clase que queremos comparar, por ejemplo, 0
+clase_objetivo = 0
+
+# Creamos una máscara para las imágenes que pertenecen a la clase objetivo
+mask_clase = (labels == clase_objetivo)
+
+# Creamos un diccionario para guardar la diferencia absoluta de cada píxel
+diferencias = {}
+# Recorremos cada píxel
+for pixel in pixels.columns:
+    promedio_clase = pixels.loc[mask_clase, pixel].mean() #Promedio de esa clase
+    promedio_restante = pixels.loc[~mask_clase, pixel].mean() #el ~ intercambia los valores de true y false de la mascara
+    diferencia_absoluta = abs(promedio_clase - promedio_restante) #Calculamos la diferencia
+    diferencias[pixel] = diferencia_absoluta #Guardamos el valor
+
+# Seleccionamos el píxel con la mayor diferencia
+mejor_pixel = max(diferencias, key=diferencias.get)
+print(f"Para la clase {clase_objetivo}, el píxel con mayor diferencia es '{mejor_pixel}' con diferencia = {diferencias[mejor_pixel]:.3f}")
+
+#Grafico el boxplot con el esquema anterior
+df_mejor_pixel = fashion[['label', mejor_pixel]]
+
+# Generar el boxplot
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='label', y=mejor_pixel, data=df_mejor_pixel)
+plt.title(f'Distribución de {mejor_pixel} por clase')
+plt.xlabel('Clase')
+plt.ylabel('Intensidad del mejor_pixel')
+plt.show()
