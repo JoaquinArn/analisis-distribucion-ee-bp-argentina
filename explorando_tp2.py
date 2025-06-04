@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import duckdb as dd
 import seaborn as sns
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split, KFold
+from matplotlib.colors import ListedColormap
 
 #%%
 fashion = pd.read_csv('Fashion-MNIST.csv')
@@ -637,7 +640,8 @@ mejores_pixeles = sorted(diferencias, key = diferencias.get, reverse = True)[:ca
 
 for pixel in mejores_pixeles:
     print(f"El {pixel} presenta una diferencia de {diferencias[pixel]}")
-
+    print(remera_top[pixel].mean())
+    print(cartera[pixel].mean())
     #Grafico el boxplot con el esquema anterior
     df_mejor_pixel = clases_seleccionadas[['label', pixel]]
     
@@ -650,3 +654,45 @@ for pixel in mejores_pixeles:
     plt.show()
 
 #%%
+X = clases_seleccionadas[['pixel554', 'pixel526']]
+y = clases_seleccionadas['label']
+X_dev, X_eval, y_dev, y_eval = train_test_split(X,y,test_size=0.1, random_state = 20)
+
+#%% CLASIFICADOR KNN
+clasificador = KNeighborsClassifier(n_neighbors=4)
+
+clasificador.fit(X_dev, y_dev)
+
+#%%
+res = clasificador.predict(X_eval)
+
+print('La precisión del clasificador es ' + str(sum(y_eval == res)/len(y_eval)))
+
+#%%
+def plot_decision_boundary(X, y, clf):
+    fig, ax = plt.subplots(figsize=(6, 6))    
+    # Crear grilla
+    h = 0.1
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h)) 
+    # Predecir clases en cada punto de la grilla
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    # Colores
+    n_classes = len(np.unique(y))
+    colors = plt.cm.Pastel1.colors[:n_classes]
+    cmap_light = ListedColormap(colors)
+    cmap_bold = ListedColormap(colors)
+    # Graficar la frontera de decisión
+    ax.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
+    ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold, s=40, edgecolor='k')
+    ax.set_xlabel("Largo del pétalo (en centímetros)")
+    ax.set_ylabel("Ancho del pétalo (en centímetros)")
+    ax.set_title("Frontera de decisión IRIS")
+    
+#%%
+plot_decision_boundary(X_dev.values, y_dev.values,clasificador)
+
+plt.show()
