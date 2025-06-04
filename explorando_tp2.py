@@ -381,7 +381,7 @@ df = dd.sql(consultaSQL).df()
 #%% SCATTERPLOT PROMEDIO PANTALÓN
 sns.scatterplot(x = promedio_pantalon.index, y = promedio_pantalon.values)
 
-plt.xticks(' ')
+
 
 #%% SCATTERPLOT PROMEDIO ZAPATILLA
 sns.scatterplot(x = promedio_zapatilla.index, y = promedio_zapatilla.values)
@@ -411,6 +411,7 @@ sns.scatterplot(x = promedio_saco.index, y = promedio_saco.values)
 
 #%% SCATTERPLOT PROMEDIO VESTIDO
 sns.scatterplot(x = promedio_vestido.index, y = promedio_vestido.values)
+
 #%% BoxPlot para un pixel en especifico y asi observar la distribucion de intensidad por clase
 pixel = 'pixel100'
 
@@ -459,3 +460,193 @@ plt.title(f'Distribución de {mejor_pixel} por clase')
 plt.xlabel('Clase')
 plt.ylabel('Intensidad del mejor_pixel')
 plt.show()
+
+#%%
+numeros = range(498,499)
+#30-40
+#100-110
+#120-130
+#140-150
+#150-160 bastante bueno
+#160-180
+#193-220-248-249-311-323-324-325-339-367-379
+#diferencia entre 350-351 para clase 1
+for numero in numeros:
+    pixel = 'pixel' + str(numero)
+    # Creo un dataframe que tenga solo la información de ese pixel
+    df_de_100 = fashion[['label', pixel]]
+    
+    # Generar el boxplot
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='label', y=pixel, data=df_de_100)
+    plt.title(f'Distribución de {pixel} por clase')
+    plt.xlabel('Clase')
+    plt.ylabel('Intensidad del píxel')
+    plt.show()
+    
+#%% CONSULTAS SQL
+
+consultaSQL = """
+                SELECT *
+                FROM bota
+                WHERE (
+                    SELECT COUNT (DISTINCT COLUMNS(*))
+                    FROM bota) = 1
+              """
+
+res = dd.sql(consultaSQL).df()
+#%%
+#Veré si hay columnas que presentan valores constantes
+constant_columns = [col for col in bota.columns if bota[col].nunique() == 1]
+
+print("Columnas con un único valor en bota:", constant_columns)
+
+
+constant_columns = [col for col in camisa.columns if camisa[col].nunique() == 1]
+
+print("Columnas con un único valor en camisa:", constant_columns)
+
+
+constant_columns = [col for col in cartera.columns if cartera[col].nunique() == 1]
+
+print("Columnas con un único valor en cartera:", constant_columns)
+
+
+constant_columns = [col for col in pantalon.columns if pantalon[col].nunique() == 1]
+
+print("Columnas con un único valor en pantalon:", constant_columns)
+
+
+constant_columns = [col for col in pullover.columns if pullover[col].nunique() == 1]
+
+print("Columnas con un único valor en pullover:", constant_columns)
+
+
+constant_columns = [col for col in remera_top.columns if remera_top[col].nunique() == 1]
+
+print("Columnas con un único valor remera/top:", constant_columns)
+
+
+constant_columns = [col for col in saco.columns if saco[col].nunique() == 1]
+
+print("Columnas con un único valor saco:", constant_columns)
+
+
+
+constant_columns = [col for col in sandalia.columns if sandalia[col].nunique() == 1]
+
+print("Columnas con un único valor sandalia:", constant_columns)
+
+
+
+constant_columns = [col for col in vestido.columns if vestido[col].nunique() == 1]
+
+print("Columnas con un único valor vestido:", constant_columns)
+
+
+
+constant_columns = [col for col in zapatilla.columns if zapatilla[col].nunique() == 1]
+
+print("Columnas con un único valor zapatilla:", constant_columns)
+
+#%%
+#Veré si hay columnas que no presentan 0
+constant_columns = [col for col in bota.columns if bota[col].all() != 0]
+
+print("Columnas con valores no nulos en bota:", constant_columns)
+
+
+constant_columns = [col for col in camisa.columns if camisa[col].all() != 0]
+
+print("Columnas con valores no nulos en camisa:", constant_columns)
+
+
+constant_columns = [col for col in cartera.columns if cartera[col].all() != 0]
+
+print("Columnas con valores no nulos en cartera:", constant_columns)
+
+
+constant_columns = [col for col in pantalon.columns if pantalon[col].all() != 0]
+
+print("Columnas con valores no nulos en pantalon:", constant_columns)
+
+
+constant_columns = [col for col in pullover.columns if pullover[col].all() != 0]
+
+print("Columnas con valores no nulos en pullover:", constant_columns)
+
+
+constant_columns = [col for col in remera_top.columns if remera_top[col].all() != 0]
+
+print("Columnas con valores no nulos en remera/top:", constant_columns)
+
+
+constant_columns = [col for col in saco.columns if saco[col].all() != 0]
+
+print("Columnas con valores no nulos en saco:", constant_columns)
+
+
+
+constant_columns = [col for col in sandalia.columns if sandalia[col].all() != 0]
+
+print("Columnas con valores no nulos en sandalia:", constant_columns)
+
+
+
+constant_columns = [col for col in vestido.columns if vestido[col].all() != 0]
+
+print("Columnas con valores no nulos en vestido:", constant_columns)
+
+
+
+constant_columns = [col for col in zapatilla.columns if zapatilla[col].all() != 0]
+
+print("Columnas con valores no nulos en zapatilla:", constant_columns)
+
+#ninguno 
+#%% SEPARACIÓN CLASE O Y 8
+clases_seleccionadas = fashion[(fashion['label'] == 0) | (fashion['label'] == 8)]
+
+#ya ví antes que hay 7000 muestras por clase, así que hay balance en cantidades de remeras/tops y carteras
+
+#queremos ajustar un modelo en base a una cantidad reducida de atributos
+#luego, usamos las funciones de diferencia en los promedios para determinar los tres máximos
+
+# Separamos la columna de clases de los píxeles
+labels = clases_seleccionadas['label']
+pixels = clases_seleccionadas.drop(columns=['label'])
+
+# Definimos la clase que queremos comparar, por ejemplo, 0
+remeras_tops = 0
+carteras = 8
+
+# Creamos un diccionario para guardar la diferencia absoluta de cada píxel
+diferencias = {}
+# Recorremos cada píxel
+for pixel in pixels.columns:
+    promedio_pixel_remera = remera_top[pixel].mean()
+    promedio_pixel_cartera = cartera[pixel].mean()
+    diferencia_absoluta = abs(promedio_pixel_remera - promedio_pixel_cartera) #Calculamos la diferencia
+    diferencias[pixel] = diferencia_absoluta #Guardamos el valor
+
+# Fijo un número de atributos
+cant_atributos = 5
+
+# Seleccionamos los píxeles con la mayor diferencia
+mejores_pixeles = sorted(diferencias, key = diferencias.get, reverse = True)[:cant_atributos]
+
+for pixel in mejores_pixeles:
+    print(f"El {pixel} presenta una diferencia de {diferencias[pixel]}")
+
+    #Grafico el boxplot con el esquema anterior
+    df_mejor_pixel = clases_seleccionadas[['label', pixel]]
+    
+    # Generar el boxplot
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='label', y=pixel, data=df_mejor_pixel)
+    plt.title(f'Distribución de {pixel} por clase')
+    plt.xlabel('Clase')
+    plt.ylabel('Intensidad del pixel')
+    plt.show()
+
+#%%
