@@ -55,6 +55,6 @@ Se evaluó si existe correlación entre la cantidad de BP y EE por departamento,
 ---
 
 ## 🔗 Fuentes utilizadas
-. Padrones de Establecimientos Educativos
-. Bibliotecas Populares
-. Población por Departamento (INDEC)
+- Padrones de Establecimientos Educativos
+- Bibliotecas Populares
+- Población por Departamento (INDEC)
