@@ -55,6 +55,8 @@ Se evaluó si existe correlación entre la cantidad de BP y EE por departamento,
 ---
 
 ## 🔗 Fuentes utilizadas
-- Padrones de Establecimientos Educativos
-- Bibliotecas Populares
-- Población por Departamento (INDEC)
+- Padrones de Establecimientos Educativos año 2022: https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos
+- Bibliotecas Populares:  https://datos.gob.ar/dataset/cultura-mapa-cultural-espacios-culturales/archivo/cultura_01c6c048-dbeb-44e0-8efa-6944f73715d7
+- Población por Departamento (INDEC): https://www.indec.gob.ar/indec/web/Nivel4-Tema-2-41-165
+
+Todas las fuentes utilizadas están subidas en el repositorio, en el formato en el que las hemos utilizado.
